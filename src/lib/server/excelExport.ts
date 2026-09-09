@@ -23,8 +23,9 @@ import { TEF3071_RAMP_POSITIONS } from "@/lib/config/fields";
 import type { PackView } from "./packService";
 import { readTemplate } from "./storage";
 import { getObject } from "./storage";
+import { WORKBOOK_TEMPLATE } from "@/lib/config/templates";
 
-export const WORKBOOK_TEMPLATE = "TRACK QUALITY PACK.xlsx";
+export { WORKBOOK_TEMPLATE };
 
 /** Highest site number provided as a worksheet in the source template. */
 export const TEMPLATE_SITE_SHEETS = 4;
@@ -112,7 +113,13 @@ export async function buildWorkbook(
   options: ExcelExportOptions = {},
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(await readTemplate(WORKBOOK_TEMPLATE));
+  const template = await readTemplate(WORKBOOK_TEMPLATE);
+  await workbook.xlsx.load(
+    template.buffer.slice(
+      template.byteOffset,
+      template.byteOffset + template.byteLength,
+    ) as ArrayBuffer,
+  );
 
   const tqs = workbook.getWorksheet("TQS FORM");
   if (!tqs) throw new Error("Template worksheet 'TQS FORM' is missing");
@@ -232,7 +239,7 @@ async function appendImages(
     if (!sheet) continue;
     const extension = asset.contentType === "image/png" ? "png" : "jpeg";
     const buffer = await getObject(asset.storageKey);
-    const imageId = workbook.addImage({ buffer: new Uint8Array(buffer), extension });
+    const imageId = workbook.addImage({ buffer: buffer as unknown as ExcelJS.Buffer, extension });
     const startRow = rowCursor[sheetName] ?? (sheetName === "TQS FORM" ? 68 : 4);
     sheet.addImage(imageId, {
       tl: { col: 2, row: startRow },

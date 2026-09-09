@@ -226,14 +226,19 @@ export const TEF3071_CHECKLIST = [
 export const TEF3071_RAMP_POSITIONS = ["0m", "5m", "10m", "15m", "20m", "25m", "30m"] as const;
 
 /** Columns captured for each work-in-progress ramp check row. */
-export const TEF3071_RAMP_COLUMNS = [
-  { id: "designCant", label: "Design cant", type: "number" as FieldType },
-  { id: "actualCant", label: "Actual cant", type: "number" as FieldType },
-  { id: "error", label: "Error [+/-]", type: "number" as FieldType },
-  { id: "verticalDatum", label: "Vertical datum [+/-]", type: "text" as FieldType },
-  { id: "structureClearance", label: "Structure clearance", type: "select" as FieldType, options: OPTIONS.yesNoNa },
-  { id: "passingClearance", label: "Passing clearance", type: "select" as FieldType, options: OPTIONS.yesNoNa },
-] as const;
+export const TEF3071_RAMP_COLUMNS: readonly {
+  id: string;
+  label: string;
+  type: FieldType;
+  options?: readonly string[];
+}[] = [
+  { id: "designCant", label: "Design cant", type: "number" },
+  { id: "actualCant", label: "Actual cant", type: "number" },
+  { id: "error", label: "Error [+/-]", type: "number" },
+  { id: "verticalDatum", label: "Vertical datum [+/-]", type: "text" },
+  { id: "structureClearance", label: "Structure clearance", type: "select", options: OPTIONS.yesNoNa },
+  { id: "passingClearance", label: "Passing clearance", type: "select", options: OPTIONS.yesNoNa },
+];
 
 export const TEF3071_GROUPS: readonly FieldGroup[] = [
   {
