@@ -1,0 +1,157 @@
+// Track Quality Pack database schema (Supabase PostgreSQL).
+// The connection string is supplied at runtime through the Supabase_DB_URL
+// environment variable and is never committed to the repository.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("Supabase_DB_URL")
+}
+
+enum Role {
+  CONTRIBUTOR
+  REVIEWER
+  ADMINISTRATOR
+}
+
+enum PackStatus {
+  DRAFT
+  IN_PROGRESS
+  READY_FOR_REVIEW
+  COMPLETE
+  ARCHIVED
+}
+
+enum MediaKind {
+  PHOTO
+  TRACE
+  CCQ_CHART
+  DIAGRAM_PAGE
+}
+
+model User {
+  id          String   @id @default(uuid())
+  externalId  String   @unique
+  email       String   @unique
+  displayName String
+  role        Role     @default(CONTRIBUTOR)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  packs   Pack[]   @relation("PackOwner")
+  exports Export[]
+}
+
+model Pack {
+  id        String     @id @default(uuid())
+  reference String     @unique
+  title     String
+  status    PackStatus @default(DRAFT)
+  version   Int        @default(1)
+  ownerId   String
+  owner     User       @relation("PackOwner", fields: [ownerId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  sites    Site[]
+  sections SectionData[]
+  media    MediaAsset[]
+  exports  Export[]
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  packId    String
+  pack      Pack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  number    Int
+  name      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sections SectionData[]
+  media    MediaAsset[]
+
+  @@unique([packId, number])
+  @@index([packId])
+}
+
+/// One row per (pack, section, optional site). `values` holds the validated
+/// field values keyed by the field identifiers declared in src/lib/config.
+model SectionData {
+  id        String   @id @default(uuid())
+  packId    String
+  pack      Pack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  siteId    String?
+  site      Site?    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  sectionId String
+  values    Json     @default("{}")
+  complete  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([packId, sectionId, siteId])
+  @@index([packId])
+}
+
+/// Metadata for uploaded photographs, traces, CCQ charts and selected
+/// diagram pages. Binary content lives in protected object storage; only the
+/// storage key is recorded here.
+model MediaAsset {
+  id           String    @id @default(uuid())
+  packId       String
+  pack         Pack      @relation(fields: [packId], references: [id], onDelete: Cascade)
+  siteId       String?
+  site         Site?     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  kind         MediaKind
+  sectionId    String?
+  storageKey   String
+  contentType  String
+  fileName     String
+  caption      String    @default("")
+  sortOrder    Int       @default(0)
+  pageNumber   Int?
+  capturedAt   DateTime?
+  latitude     Float?
+  longitude    Float?
+  gpsAccuracy  Float?
+  locationNote String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  annotations Annotation[]
+
+  @@index([packId, kind])
+  @@index([siteId])
+}
+
+/// Structured annotation overlays. Shapes are stored as normalised
+/// coordinates so they stay aligned across screen sizes and devices.
+model Annotation {
+  id        String     @id @default(uuid())
+  mediaId   String
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  shapes    Json       @default("[]")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([mediaId])
+}
+
+model Export {
+  id          String   @id @default(uuid())
+  packId      String
+  pack        Pack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  format      String
+  storageKey  String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([packId])
+}
