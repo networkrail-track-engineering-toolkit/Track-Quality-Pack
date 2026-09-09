@@ -1,0 +1,655 @@
+# Project: Track Quality Pack Web Application
+
+## Objective
+
+Build a production-ready web application that converts the Track Quality Pack Excel workbook stored in this repository into a digital, responsive Track Quality Pack.
+
+The application will be deployed to Microsoft Azure and used by railway engineering staff on:
+
+- Windows laptops
+- iPads
+- iPhones
+
+The application must retain the structure, terminology, functionality, and general appearance of the source Excel and Word documents wherever practical.
+
+Do not create a generic form application. First inspect the documents in the repository and use their worksheets, fields, formatting, formulas, named ranges, validation rules, and document layout as the authoritative source for the application design.
+
+---
+
+# 1. Initial Repository Assessment
+
+Before writing the main application:
+
+1. Inspect the entire repository.
+2. Identify:
+   - The main Track Quality Pack Excel workbook
+   - Every worksheet in the workbook
+   - The fields, tables, formulas, dropdown lists, merged cells, validations, and formatting on each worksheet
+   - The Line Diagram PDF
+   - The TEF3071 Word document
+   - The TEF3207 Excel document
+   - Any templates, images, reference data, lookup tables, or supporting files
+3. Produce a concise implementation plan in a Markdown file named `IMPLEMENTATION_PLAN.md`.
+4. Record assumptions and any workbook features that cannot be reproduced exactly in `IMPLEMENTATION_PLAN.md`.
+5. Do not invent missing business rules. Where a rule cannot be determined from the repository, isolate it in configuration and document the assumption.
+
+---
+
+# 2. Application Structure
+
+Each relevant worksheet in the Track Quality Pack workbook must become a separate section or route in the application.
+
+Use the worksheet names as the basis for the section names, but convert them into safe URL routes.
+
+Provide:
+
+- A clear application header
+- Track Quality Pack status
+- Section navigation
+- Previous and Next buttons
+- Save button
+- Save status indicator
+- Validation summary
+- Export menu
+- Responsive mobile navigation
+- Clear indication of the currently selected site
+
+The user must be able to move between sections without losing entered information.
+
+---
+
+# 3. Site-Specific Sections
+
+Some workbook worksheets have names ending in `Site _`, where the underscore represents a site number or site-specific instance.
+
+The required behaviour is:
+
+1. The user enters the number of sites and site information within the `Track Details` area of the `TQS Form` section.
+2. If one site is identified, show one instance of every site-specific section.
+3. If multiple sites are identified, dynamically create one instance of each site-specific section for every site.
+4. Clearly label each instance with the applicable site number and site name.
+5. Allow the user to switch between sites without losing data.
+6. Store each site's data separately.
+7. If the number of sites is reduced, do not silently delete existing information. Warn the user and require an explicit deletion action.
+8. Export all applicable site-specific sections in the correct sequence.
+
+The site logic must be data-driven. Do not hard-code a maximum number of sites unless the workbook explicitly imposes one.
+
+---
+
+# 4. TQS Form Section
+
+The `TQS Form` is the primary information section.
+
+This section will normally be completed before the shift and must capture the core Track Quality Pack and site information.
+
+## Required behaviour
+
+- Reproduce all relevant fields from the source worksheet.
+- Preserve dropdown options and validation rules found in the workbook.
+- Retain mandatory and optional field behaviour where it can be identified.
+- Automatically save changes.
+- Display clear validation messages.
+- Make the form easy to complete on both desktop and mobile devices.
+- Use appropriate controls for dates, times, numbers, selections, and longer text.
+- Prevent accidental data loss.
+
+## Shared data
+
+Information entered into the TQS Form must automatically populate corresponding fields in:
+
+- Site-specific sections
+- TEF3071
+- TEF3207
+- Exports
+- Any other workbook sections containing the same information
+
+Use one shared underlying data model. Do not maintain duplicate, disconnected copies of the same value.
+
+Examples of shared data may include:
+
+- Track Quality Pack reference
+- Project or work description
+- Site name
+- Site number
+- Route
+- Line
+- ELR
+- Mileage
+- Track ID
+- Date
+- Shift
+- Responsible person
+- Other site or work details found in the workbook
+
+Only implement mappings that can be identified from the supplied documents. Record uncertain mappings in the implementation plan.
+
+---
+
+# 5. Photograph Capture and Management
+
+The TQS Form must include a photograph management area suitable for site use.
+
+## Required functions
+
+Users must be able to:
+
+- Take a photograph using a mobile device camera
+- Select an existing image from the device
+- Preview an image before saving
+- Add a caption or description
+- Associate a photograph with a site
+- Associate a photograph with a pack section where applicable
+- Record the capture date and time
+- Reorder photographs
+- Delete photographs with confirmation
+- View photographs at full size
+- Include selected photographs in PDF and Excel exports where supported
+
+Use mobile camera-compatible file input settings such as `accept="image/*"` and camera capture hints where supported. Provide a normal file upload fallback for laptops, tablets, and browsers that do not support direct camera capture.
+
+## Location information
+
+When a photograph is captured on a device that supports location services:
+
+1. Request location permission clearly.
+2. Capture latitude, longitude, accuracy, date, and time.
+3. Never prevent photo capture if location permission is refused or unavailable.
+4. Store location information separately from the image file.
+5. Display whether location was successfully recorded.
+6. Do not expose raw location information to unauthorised users.
+
+Review the Network Rail GIS repository available at:
+
+https://github.com/openraildata/network-rail-gis
+
+Use it only where its data, format, and licence allow reliable conversion of device coordinates into useful railway location information.
+
+The application must continue to work when:
+
+- Location permission is denied
+- GPS is unavailable
+- The GIS data cannot identify a railway position
+- The device is temporarily offline
+
+Do not assume the GIS repository exposes a live web API. Inspect it first and document the chosen integration approach.
+
+---
+
+# 6. Diagram Section
+
+A Line Diagram PDF will be added to the repository.
+
+The Diagram section must allow the user to:
+
+1. Open and view the PDF within the application.
+2. See page thumbnails.
+3. Select one or more pages relevant to the site.
+4. Associate selected pages with the correct site.
+5. Zoom, pan, and rotate the displayed page where practical.
+6. Annotate selected pages.
+7. Save annotations without permanently changing the original PDF.
+8. Edit or remove saved annotations.
+9. Include selected pages and annotations in the final PDF export.
+
+## Annotation tools
+
+Provide at least:
+
+- Freehand drawing
+- Straight line
+- Arrow
+- Rectangle
+- Text box
+- Highlight tool
+- Colour selection
+- Line thickness selection
+- Undo
+- Redo
+- Select and move
+- Delete annotation
+- Clear annotations with confirmation
+
+Store annotations as structured overlay data, such as JSON containing coordinates, page number, tool type, colour, and dimensions. Do not save only a flattened screenshot.
+
+Ensure annotations remain correctly positioned when the page is resized or viewed on another device.
+
+---
+
+# 7. Trace Section
+
+The Trace section must allow users to:
+
+- Upload one or more trace images
+- Take a photograph of a trace using a mobile device
+- Preview uploaded images
+- Rotate images
+- Zoom and pan
+- Associate each trace with a site
+- Add a title and description
+- Annotate the trace using the same annotation tools as the Diagram section
+- Save, edit, and remove annotations
+- Include the trace and its annotations in the exported Track Quality Pack
+
+Reuse a shared annotation component rather than creating separate annotation implementations for each section.
+
+Preserve the original uploaded image and store annotations separately.
+
+---
+
+# 8. CCQ Chart Section
+
+The CCQ Chart section must use the same upload, camera capture, viewing, site association, and annotation functionality as the Trace section.
+
+Users must be able to:
+
+- Upload one or more CCQ chart images
+- Capture an image using a mobile device
+- Assign the image to a site
+- Add a title or description
+- Zoom, pan, and rotate
+- Add and edit annotations
+- Include the annotated chart in the final exports
+
+Reuse the common media and annotation components.
+
+---
+
+# 9. TEF3071 Section
+
+A TEF3071 Word document will be provided in the repository.
+
+Create a digital TEF3071 section that:
+
+- Retains the original document's appearance and structure as closely as practical
+- Reproduces all relevant fields, headings, tables, declarations, and signature areas
+- Works responsively on laptop, iPad, and iPhone
+- Automatically populates relevant site and Track Quality Pack information from the TQS Form
+- Allows users to complete all remaining fields
+- Supports validation for required information
+- Preserves the visual layout in exports
+- Records the applicable site where multiple sites exist
+
+The web section does not have to remain a Word document internally. It may be implemented as a responsive HTML form, provided its function, content, and exported appearance remain faithful to the original.
+
+Document any elements that cannot be reproduced exactly.
+
+---
+
+# 10. TEF3207 Section
+
+A TEF3207 Excel document will be provided in the repository.
+
+Create a digital TEF3207 section that:
+
+- Retains the source document's functionality and appearance as closely as practical
+- Reproduces its fields, tables, formulas, dropdown lists, and validation rules
+- Automatically populates relevant information from the TQS Form
+- Allows the user to complete the remaining information
+- Supports multiple sites where required
+- Preserves calculations found in the source document
+- Retains an appropriate layout in Excel and PDF exports
+
+Do not copy spreadsheet formulas directly into a client-side implementation without validating their behaviour. Convert required formulas into tested application logic or shared calculation functions.
+
+---
+
+# 11. Data Storage
+
+Use Supabase PostgreSQL as the application database.
+
+The environment variable name must be:
+
+`Supabase_DB_URL`
+
+## Security requirements
+
+- Never hard-code the database connection string.
+- Never commit credentials to Git.
+- Never include credentials in client-side JavaScript.
+- Never expose `Supabase_DB_URL` through a public environment variable.
+- Access the database only through secure server-side code.
+- Add `.env` and `.env.*` files containing secrets to `.gitignore`.
+- Provide a `.env.example` file containing placeholders only.
+- Validate all data on the server.
+- Use parameterised database queries or a secure ORM.
+- Do not log passwords, connection strings, tokens, or sensitive form contents.
+- Configure Azure to supply `Supabase_DB_URL` as a protected application setting.
+
+## Suggested data model
+
+Create an appropriate relational schema that covers at least:
+
+- Users
+- Track Quality Packs
+- Sites
+- TQS Form data
+- Section data
+- TEF3071 data
+- TEF3207 data
+- Uploaded files
+- Photographs
+- Photograph metadata
+- Diagram page selections
+- Annotations
+- Trace images
+- CCQ chart images
+- Export history
+- Draft and completion status
+- Created and updated timestamps
+
+Use migrations and include clear schema documentation.
+
+Use appropriate foreign keys, indexes, constraints, and transactional operations.
+
+Uploaded files and images should be stored in suitable protected object storage, with database records containing their metadata and storage references. Do not store large image or PDF binaries directly in ordinary database text fields.
+
+---
+
+# 12. Track Quality Pack Workflow
+
+Support at least the following statuses:
+
+- Draft
+- In progress
+- Ready for review
+- Complete
+- Archived
+
+Users must be able to:
+
+- Create a new Track Quality Pack
+- Reopen an existing pack
+- Edit a draft
+- Save progress
+- Duplicate a pack where appropriate
+- View validation issues
+- Mark a pack ready for review
+- Export the pack
+- Archive a completed pack
+
+Prevent silent overwriting where two sessions attempt to edit the same pack. Use an updated timestamp, version number, or another optimistic concurrency method.
+
+---
+
+# 13. Autosave and Offline Resilience
+
+The application will be used on operational sites where connectivity may be poor.
+
+Implement:
+
+- Debounced autosave
+- Visible save status
+- Clear save failure warnings
+- Retry behaviour for temporary failures
+- Protection against accidental navigation with unsaved changes
+- Local retention of unsaved form changes where practical
+- Safe synchronisation when the connection returns
+
+Do not claim that the application is fully offline unless all required offline functions are genuinely implemented and tested.
+
+Images awaiting upload must be clearly identified.
+
+---
+
+# 14. Excel Export
+
+The completed Track Quality Pack must be exportable to the same Excel structure as the original workbook.
+
+The export must:
+
+- Use the original workbook as the template where practical
+- Retain worksheet names and ordering
+- Preserve formatting, column widths, row heights, merged cells, print areas, headers, footers, and page setup where supported
+- Insert form values into the correct cells
+- Include the required site-specific worksheets
+- Preserve supported formulas
+- Add uploaded images where the template requires them
+- Keep blank template areas intact
+- Produce a valid `.xlsx` file that opens without a repair warning
+- Avoid modifying the original template file
+
+Create a field-to-cell mapping in a version-controlled configuration file instead of scattering cell references throughout the code.
+
+Add automated checks for key exported cells and workbook structure.
+
+If exact workbook reproduction is technically impossible for a specific feature, preserve the information and document the difference.
+
+---
+
+# 15. PDF Export
+
+Provide a PDF export containing the completed Track Quality Pack.
+
+The PDF must:
+
+- Follow the logical order of the original pack
+- Include all applicable sites
+- Include completed TQS Form information
+- Include selected Line Diagram pages
+- Include saved annotations
+- Include Trace images
+- Include CCQ Chart images
+- Include TEF3071
+- Include TEF3207
+- Preserve readable page sizing and orientation
+- Include page numbers
+- Clearly identify the Track Quality Pack and applicable site
+- Avoid splitting important tables or form sections incorrectly
+- Generate the final output on the server where this improves reliability and consistency
+
+The PDF export must use the saved database state and must not depend only on the currently displayed browser page.
+
+---
+
+# 16. Responsive Design and Accessibility
+
+Design mobile-first while also using the available space on larger screens.
+
+Minimum requirements:
+
+- No unintended horizontal scrolling for ordinary form entry
+- Touch-friendly controls
+- Clear labels and validation messages
+- Logical keyboard navigation
+- Visible focus indicators
+- Suitable colour contrast
+- Accessible form labels
+- Meaningful button text
+- Support for portrait and landscape layouts
+- Images that resize without losing their annotation alignment
+- Tables that remain usable on smaller screens
+- Confirmation before destructive actions
+
+Test representative layouts at:
+
+- Mobile phone width
+- Tablet portrait
+- Tablet landscape
+- Standard laptop width
+
+---
+
+# 17. Authentication and Authorisation
+
+Implement secure authentication appropriate for an Azure-hosted organisational application.
+
+Keep authentication and authorisation isolated from the business logic so the identity provider can be configured for the deployment environment.
+
+At minimum, support roles equivalent to:
+
+- Contributor: create and edit packs
+- Reviewer: review and update review status
+- Administrator: manage configuration and archived records
+
+Apply permissions on the server. Hiding a button in the interface is not sufficient authorisation.
+
+Do not create default production passwords or commit test credentials.
+
+---
+
+# 18. Technical Architecture
+
+Choose a maintained web framework suitable for Azure deployment, responsive forms, server-side database access, file upload, PDF processing, and Excel generation.
+
+Preferred approach unless the existing repository dictates otherwise:
+
+- TypeScript
+- React-based full-stack framework
+- Server-side API routes or server actions
+- PostgreSQL-compatible ORM with migrations
+- Reusable form components
+- Shared annotation component
+- Server-side validation
+- Automated tests
+- Azure-compatible deployment configuration
+
+Keep the following concerns separate:
+
+- User interface
+- Validation
+- Business rules
+- Database access
+- File storage
+- Template mapping
+- Annotation handling
+- Export generation
+- Authentication and authorisation
+
+Prefer straightforward, maintainable code over unnecessary architectural complexity.
+
+---
+
+# 19. Testing
+
+Add tests for the critical workflows.
+
+## Minimum automated coverage
+
+- Create a Track Quality Pack
+- Create one or multiple sites
+- Generate site-specific sections
+- Save and reload data
+- Shared TQS Form field propagation
+- Validation
+- Annotation serialisation and restoration
+- TEF calculations where applicable
+- Excel generation
+- PDF generation
+- Server-side authorisation
+- Mobile-responsive component behaviour where practical
+
+Also include a manual acceptance test checklist in `ACCEPTANCE_TESTS.md`.
+
+---
+
+# 20. Documentation
+
+Create or update `README.md` with:
+
+- Application purpose
+- Technology stack
+- Prerequisites
+- Local development setup
+- Environment variables
+- Database setup
+- Migration commands
+- File storage configuration
+- How source templates are mapped
+- How to run tests
+- How to build the application
+- Azure deployment instructions
+- Security considerations
+- Known limitations
+- Backup and recovery considerations
+
+The documentation must use placeholder credentials only.
+
+---
+
+# 21. Required Deliverables
+
+Produce:
+
+1. A working web application
+2. Responsive TQS Form and document sections
+3. Multi-site functionality
+4. Supabase PostgreSQL schema and migrations
+5. Secure server-side database integration
+6. Photograph and location capture
+7. PDF page selection and annotation
+8. Trace and CCQ Chart upload and annotation
+9. TEF3071 digital form
+10. TEF3207 digital form
+11. Excel template export
+12. PDF export
+13. Automated tests
+14. Azure deployment configuration
+15. `.env.example`
+16. Updated `.gitignore`
+17. `IMPLEMENTATION_PLAN.md`
+18. `ACCEPTANCE_TESTS.md`
+19. Complete `README.md`
+
+---
+
+# 22. Acceptance Criteria
+
+The implementation is acceptable when:
+
+- Every relevant source worksheet has a corresponding application section.
+- TQS Form data automatically populates mapped fields in other sections.
+- The application supports one or multiple sites.
+- Site-specific content is stored independently.
+- A user can take and upload photographs from a mobile device.
+- Refusing location permission does not stop photograph capture.
+- Selected PDF pages can be annotated and saved.
+- Trace and CCQ Chart images can be uploaded and annotated.
+- TEF3071 and TEF3207 retain their required function and recognisable layout.
+- Data remains after refresh, logout, and login.
+- Database credentials are not present in the repository or browser bundle.
+- The final Excel file opens correctly and follows the source workbook structure.
+- The final PDF contains all applicable sections and annotations.
+- The application is usable on laptops, iPads, and iPhones.
+- Critical workflows have automated tests.
+- Deployment and configuration are documented.
+
+---
+
+# 23. Development Approach
+
+Work in controlled stages:
+
+1. Inspect and document the repository.
+2. Create the application shell and navigation.
+3. Create the database schema and migrations.
+4. Implement the TQS Form and shared data model.
+5. Implement multi-site behaviour.
+6. Implement media upload and location capture.
+7. Implement the shared annotation component.
+8. Implement Diagram, Trace, and CCQ Chart sections.
+9. Implement TEF3071 and TEF3207.
+10. Implement Excel export.
+11. Implement PDF export.
+12. Add authentication, authorisation, validation, and security controls.
+13. Add tests and documentation.
+14. Run the full test, lint, type-check, build, and security checks.
+15. Correct all blocking errors before considering the implementation complete.
+
+After each stage:
+
+- Run the relevant automated tests.
+- Run the TypeScript type checker.
+- Run linting.
+- Record significant assumptions.
+- Keep the application in a buildable state.
+- Do not remove source templates or reference documents.
+- Do not commit generated exports, uploaded user files, database credentials, or local environment files.
+
+Before completing the task, provide a concise summary of:
+
+- What was implemented
+- Files created or changed
+- Tests performed
+- Remaining limitations
+- Configuration required in Azure or Supabase
