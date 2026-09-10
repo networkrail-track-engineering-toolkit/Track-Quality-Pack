@@ -110,7 +110,14 @@ The same checks run in `.github/workflows/ci.yml` for every push and pull reques
 ## Deploying to Azure
 
 `.github/workflows/azure-deploy.yml` builds, checks and deploys the application to an
-Azure Web App.
+Azure Web App. `.github/workflows/main_app-track-quality-pack-web-dev.yml` performs the
+same build for the `app-track-quality-pack-web-dev` app using a publish profile.
+
+Both workflows ship a zipped package. The zip is required: GitHub artifacts skip
+hidden files by default, which would drop `.next`, `node_modules/.bin` and the
+generated `node_modules/.prisma` client, leaving the Web App with no build output and
+no `next` binary. In that state App Service cannot start the site and every request
+returns HTTP 503.
 
 1. Create a Linux App Service on the Node 22 runtime.
 2. Set the repository variables `AZURE_WEBAPP_NAME` and `AZURE_RESOURCE_GROUP`, and
@@ -118,7 +125,9 @@ Azure Web App.
    `AZURE_SUBSCRIPTION_ID`.
 3. In the Web App configuration, add the environment variables above as app settings.
    Use Key Vault references for `Supabase_DB_URL` and the storage connection string.
-   Set the startup command to `npm start`.
+   Set the startup command to `npm start`, and leave
+   `SCM_DO_BUILD_DURING_DEPLOYMENT` unset or `false` because the package is already
+   built.
 4. Enable App Service Authentication (Easy Auth) with Microsoft Entra ID and set
    `AUTH_PROVIDER=azure-easy-auth`.
 5. Run `npx prisma migrate deploy` against the database when the schema changes.

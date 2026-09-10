@@ -31,7 +31,7 @@ jobs:
       # the production build; no database is contacted.
       - run: npx prisma generate
         env:
-          Supabase_DB_URL: ******localhost:5432/build
+          Supabase_DB_URL: "postgresql://localhost:5432/build?schema=public"
 
       - run: npx tsc --noEmit
       - run: npm run lint
@@ -39,22 +39,30 @@ jobs:
 
       - run: npm run build
         env:
-          Supabase_DB_URL: ******localhost:5432/build
+          Supabase_DB_URL: "postgresql://localhost:5432/build?schema=public"
 
       - name: Assemble deployment package
+        # Zipped so that dot-directories (.next, the generated .prisma client
+        # and node_modules/.bin) and executable permissions survive the
+        # artifact round trip; otherwise the web app starts without build
+        # output and returns HTTP 503.
         run: |
-          mkdir -p deploy
-          cp -r .next deploy/
-          cp -r public deploy/
-          cp -r prisma deploy/
-          cp -r node_modules deploy/
-          cp package.json package-lock.json deploy/
-          cp "TRACK QUALITY PACK.xlsx" "IMDM Doncaster.pdf" deploy/
+          zip -r --symlinks app.zip \
+            .next \
+            public \
+            prisma \
+            node_modules \
+            package.json \
+            package-lock.json \
+            next.config.ts \
+            "TRACK QUALITY PACK.xlsx" \
+            "IMDM Doncaster.pdf" \
+            > /dev/null
 
       - uses: actions/upload-artifact@v4
         with:
           name: app
-          path: deploy
+          path: app.zip
 
   deploy:
     needs: build
@@ -79,4 +87,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: app
+          package: app/app.zip
