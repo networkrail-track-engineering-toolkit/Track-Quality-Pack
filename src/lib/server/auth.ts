@@ -32,19 +32,75 @@ const LOCAL_USER = {
   role: "ADMINISTRATOR" as Role,
 };
 
+interface UserRecord {
+  id: string;
+  externalId: string;
+  email: string;
+  displayName: string;
+  role: string;
+}
+
+/** The subset of the Prisma client used to provision the local user. */
+export interface UserStore {
+  findFirst(args: {
+    where: { OR: Array<{ externalId: string } | { email: string }> };
+  }): Promise<UserRecord | null>;
+  create(args: {
+    data: {
+      externalId: string;
+      email: string;
+      displayName: string;
+      role: Role;
+    };
+  }): Promise<UserRecord>;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "P2002"
+  );
+}
+
+/**
+ * Find the local user, creating it only when it is missing.
+ *
+ * `upsert` fails when a row already matches one of the other unique columns
+ * (for example a user created with the same email under a different external
+ * id) and when two concurrent requests both try to create the row. Both cases
+ * surface as a unique constraint violation, so the row is looked up on either
+ * unique column and the create is retried once after a conflict.
+ */
+export async function resolveLocalUser(users: UserStore): Promise<UserRecord> {
+  const where = {
+    OR: [{ externalId: LOCAL_USER.externalId }, { email: LOCAL_USER.email }],
+  };
+
+  const existing = await users.findFirst({ where });
+  if (existing) return existing;
+
+  try {
+    return await users.create({
+      data: {
+        externalId: LOCAL_USER.externalId,
+        email: LOCAL_USER.email,
+        displayName: LOCAL_USER.displayName,
+        role: LOCAL_USER.role,
+      },
+    });
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error;
+    const raced = await users.findFirst({ where });
+    if (raced) return raced;
+    throw error;
+  }
+}
+
 /** Resolve (and provision on first use) the single local user. */
 export async function getSessionUser(): Promise<SessionUser> {
   assertDatabaseConfigured();
-  const user = await prisma.user.upsert({
-    where: { externalId: LOCAL_USER.externalId },
-    update: {},
-    create: {
-      externalId: LOCAL_USER.externalId,
-      email: LOCAL_USER.email,
-      displayName: LOCAL_USER.displayName,
-      role: LOCAL_USER.role,
-    },
-  });
+  const user = await resolveLocalUser(prisma.user);
 
   return {
     id: user.id,
