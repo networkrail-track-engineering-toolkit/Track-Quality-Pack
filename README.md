@@ -63,6 +63,23 @@ npx prisma migrate deploy
 After changing the schema, create a migration with
 `npx prisma migrate dev --name <change>` and commit the generated SQL.
 
+Migrations are not applied by the deployment workflows, so a new or rebuilt database
+must be migrated once before the app can be used.
+
+### When the app reports a database problem
+
+API requests return HTTP 503 with a specific message. Match it to the fix:
+
+| Message | Fix |
+| --- | --- |
+| `Supabase_DB_URL is not configured` | Add the app setting in the Web App configuration and restart |
+| `The database could not be reached` | Check the connection string, that the Supabase project is running, and that its network rules allow the Web App |
+| `The database rejected the credentials` | The user or password in `Supabase_DB_URL` is wrong |
+| `The database schema is out of date` | Run `npx prisma migrate deploy` against the database |
+
+The underlying driver message is never returned or logged, because it can contain the
+host name and user from the connection string.
+
 ## File storage
 
 Photographs, traces, charts and selected diagram pages are written through

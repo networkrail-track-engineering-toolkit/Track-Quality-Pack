@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { DatabaseError } from "./dbError";
 
 /**
  * Server-only Prisma client. The connection string is read from the
@@ -16,7 +17,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export function assertDatabaseConfigured(): void {
   if (!process.env.Supabase_DB_URL) {
-    throw new Error(
+    throw new DatabaseError(
       "Supabase_DB_URL is not configured. Set it as a protected application setting.",
     );
   }
