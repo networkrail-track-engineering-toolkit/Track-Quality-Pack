@@ -43,8 +43,6 @@ The app runs at <http://localhost:3000>.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `Supabase_DB_URL` | yes | PostgreSQL connection string. Server-side only; never exposed to the browser |
-| `AUTH_PROVIDER` | yes | `azure-easy-auth` in production, `dev` for local work |
-| `DEV_USER_EMAIL`, `DEV_USER_NAME`, `DEV_USER_ROLE` | no | Local development identity. Ignored, and refused, in production |
 | `STORAGE_PROVIDER` | yes | `azure-blob` in production, `local` for local work |
 | `STORAGE_LOCAL_DIR` | no | Directory for local file storage (default `./storage`) |
 | `AZURE_STORAGE_CONNECTION_STRING` | in production | Storage account connection string |
@@ -128,18 +126,14 @@ returns HTTP 503.
    Set the startup command to `npm start`, and leave
    `SCM_DO_BUILD_DURING_DEPLOYMENT` unset or `false` because the package is already
    built.
-4. Enable App Service Authentication (Easy Auth) with Microsoft Entra ID and set
-   `AUTH_PROVIDER=azure-easy-auth`.
-5. Run `npx prisma migrate deploy` against the database when the schema changes.
+4. Run `npx prisma migrate deploy` against the database when the schema changes.
 
 ## Security
 
 * Credentials are supplied only through environment variables and Azure app settings;
   the repository contains placeholders only.
-* Authentication is handled by Azure Easy Auth. The development provider refuses to
-  start in production.
-* Roles — contributor, reviewer and administrator — are enforced on the server for every
-  write, not in the browser.
+* The application does not require sign-in. Every request runs as a single built-in
+  local user, so the app can simply be opened and used.
 * All request bodies are validated against the declared field list before being stored,
   so unexpected input is rejected rather than persisted.
 * Uploads are restricted by content type and size, and are stored outside the web root.
