@@ -15,7 +15,7 @@ import { DatabaseError } from "./dbError";
  * unreachable error, so the value is normalised before use.
  */
 
-const POOLER_HOST_SUFFIX = "pooler.supabase.com";
+const POOLER_HOST = "pooler.supabase.com";
 const POOLER_TRANSACTION_PORT = "6543";
 
 /** Remove whitespace and any wrapping quotes copied in with the value. */
@@ -28,10 +28,9 @@ function clean(raw: string): string {
 }
 
 function isTransactionPooler(url: URL): boolean {
-  return (
-    url.hostname.endsWith(POOLER_HOST_SUFFIX) &&
-    url.port === POOLER_TRANSACTION_PORT
-  );
+  const host = url.hostname.toLowerCase();
+  const isPooler = host === POOLER_HOST || host.endsWith(`.${POOLER_HOST}`);
+  return isPooler && url.port === POOLER_TRANSACTION_PORT;
 }
 
 /**
