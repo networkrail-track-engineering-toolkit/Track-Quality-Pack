@@ -64,10 +64,9 @@ Key findings that shaped the data model:
 * **Concurrency.** Every pack carries a `version`. Saves run in a transaction and are
   rejected with HTTP 409 if the version moved, so two engineers cannot silently
   overwrite each other.
-* **Security.** Authentication is pluggable: Azure App Service Easy Auth in production,
-  a development provider that refuses to run in production. Roles (contributor,
-  reviewer, administrator) are enforced on the server for every write. All input is
-  validated with Zod against the allowed field list before it reaches the database.
+* **Security.** The application has no sign-in; every request runs as a single built-in
+  local user. All input is validated with Zod against the allowed field list before it
+  reaches the database.
 
 ## 3. Assumptions
 

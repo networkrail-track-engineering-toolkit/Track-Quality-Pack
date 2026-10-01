@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { AuthenticationError, AuthorisationError } from "./auth";
+import { AuthorisationError } from "./auth";
 import { ConcurrencyError } from "./packService";
 
 /**
@@ -8,9 +8,6 @@ import { ConcurrencyError } from "./packService";
  * never returned to the client or written to the log.
  */
 export function apiError(error: unknown): NextResponse {
-  if (error instanceof AuthenticationError) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
   if (error instanceof AuthorisationError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }

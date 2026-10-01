@@ -6,7 +6,7 @@ import { getObject } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
-/** Streams the stored file to authenticated users only. */
+/** Streams the stored file. */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ mediaId: string }> },

@@ -1,28 +1,20 @@
-import { headers } from "next/headers";
 import { prisma } from "./db";
 
 /**
- * Authentication and authorisation.
+ * Users and permissions.
  *
- * Identity is resolved by a pluggable provider so the identity provider can be
- * changed per deployment without touching business logic:
- *  - `azure-easy-auth` reads the `x-ms-client-principal-*` headers injected by
- *    Azure App Service authentication (Entra ID).
- *  - `dev` is for local development only and is refused in production.
- *
- * No passwords are stored by this application.
+ * The application does not require sign-in. Every request runs as a single
+ * built-in local user, which is provisioned in the database on first use so
+ * that packs still have an owner. No passwords or identity providers are used.
  */
 
 export type Role = "CONTRIBUTOR" | "REVIEWER" | "ADMINISTRATOR";
 
-export interface Principal {
+export interface SessionUser {
+  id: string;
   externalId: string;
   email: string;
   displayName: string;
-}
-
-export interface SessionUser extends Principal {
-  id: string;
   role: Role;
 }
 
@@ -33,53 +25,23 @@ export class AuthorisationError extends Error {
   }
 }
 
-export class AuthenticationError extends Error {
-  constructor(message = "Not authenticated") {
-    super(message);
-    this.name = "AuthenticationError";
-  }
-}
+const LOCAL_USER = {
+  externalId: "local:default",
+  email: "user@local",
+  displayName: "Track Quality Pack user",
+  role: "ADMINISTRATOR" as Role,
+};
 
-export function resolvePrincipal(headerBag: {
-  get(name: string): string | null;
-}): Principal | null {
-  const provider = process.env.AUTH_PROVIDER ?? "dev";
-  if (provider === "azure-easy-auth") {
-    const externalId = headerBag.get("x-ms-client-principal-id");
-    const email = headerBag.get("x-ms-client-principal-name");
-    if (!externalId || !email) return null;
-    return { externalId, email, displayName: email };
-  }
-  if (process.env.NODE_ENV === "production") {
-    throw new AuthenticationError(
-      "The development authentication provider cannot be used in production",
-    );
-  }
-  const email = process.env.DEV_USER_EMAIL ?? "developer@example.invalid";
-  return {
-    externalId: `dev:${email}`,
-    email,
-    displayName: process.env.DEV_USER_NAME ?? "Local Developer",
-  };
-}
-
-/** Resolve (and provision on first sign-in) the current user. */
+/** Resolve (and provision on first use) the single local user. */
 export async function getSessionUser(): Promise<SessionUser> {
-  const principal = resolvePrincipal(await headers());
-  if (!principal) throw new AuthenticationError();
-
-  const defaultRole = (process.env.AUTH_PROVIDER ?? "dev") === "dev"
-    ? ((process.env.DEV_USER_ROLE as Role) ?? "CONTRIBUTOR")
-    : "CONTRIBUTOR";
-
   const user = await prisma.user.upsert({
-    where: { externalId: principal.externalId },
-    update: { email: principal.email, displayName: principal.displayName },
+    where: { externalId: LOCAL_USER.externalId },
+    update: {},
     create: {
-      externalId: principal.externalId,
-      email: principal.email,
-      displayName: principal.displayName,
-      role: defaultRole,
+      externalId: LOCAL_USER.externalId,
+      email: LOCAL_USER.email,
+      displayName: LOCAL_USER.displayName,
+      role: LOCAL_USER.role,
     },
   });
 
