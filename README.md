@@ -43,6 +43,7 @@ The app runs at <http://localhost:3000>.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `Supabase_DB_URL` | yes | PostgreSQL connection string. Server-side only; never exposed to the browser |
+| `DATABASE_URL` | no | Fallback used only when `Supabase_DB_URL` is unset |
 | `STORAGE_PROVIDER` | yes | `azure-blob` in production, `local` for local work |
 | `STORAGE_LOCAL_DIR` | no | Directory for local file storage (default `./storage`) |
 | `AZURE_STORAGE_CONNECTION_STRING` | in production | Storage account connection string |
@@ -73,12 +74,30 @@ API requests return HTTP 503 with a specific message. Match it to the fix:
 | Message | Fix |
 | --- | --- |
 | `Supabase_DB_URL is not configured` | Add the app setting in the Web App configuration and restart |
-| `The database could not be reached` | Check the connection string, that the Supabase project is running, and that its network rules allow the Web App |
+| `The database could not be reached` | Use the pooler host (see below), and check that the Supabase project is running and that its network rules allow the Web App |
 | `The database rejected the credentials` | The user or password in `Supabase_DB_URL` is wrong |
 | `The database schema is out of date` | Run `npx prisma migrate deploy` against the database |
 
 The underlying driver message is never returned or logged, because it can contain the
 host name and user from the connection string.
+
+### Connection string on Azure
+
+Azure App Service has no outbound IPv6, and the Supabase direct host
+`db.<ref>.supabase.co` only publishes an IPv6 address, so a direct connection string
+always fails with `The database could not be reached`. Take the **connection pooler**
+string from the Supabase dashboard instead:
+
+```text
+postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+The app normalises this value before handing it to Prisma: surrounding quotes and
+whitespace are removed, `sslmode=require` is added when absent, and the transaction
+pooler (port 6543) also gets `pgbouncer=true` and `connection_limit=1`, which Prisma
+needs because PgBouncer cannot replay prepared statements. Port 5432 on the pooler
+host is the session pooler and is left unchanged. A value that is not a PostgreSQL
+URL is reported as `Supabase_DB_URL is not a valid PostgreSQL connection string`.
 
 ## File storage
 
