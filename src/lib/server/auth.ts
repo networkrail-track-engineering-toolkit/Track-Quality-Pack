@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { assertDatabaseConfigured, prisma } from "./db";
 
 /**
  * Users and permissions.
@@ -34,6 +34,7 @@ const LOCAL_USER = {
 
 /** Resolve (and provision on first use) the single local user. */
 export async function getSessionUser(): Promise<SessionUser> {
+  assertDatabaseConfigured();
   const user = await prisma.user.upsert({
     where: { externalId: LOCAL_USER.externalId },
     update: {},

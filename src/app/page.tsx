@@ -24,12 +24,15 @@ export default function HomePage() {
   useEffect(() => {
     void (async () => {
       const response = await fetch("/api/packs");
-      if (!response.ok) {
-        setStatus("Track Quality Packs could not be loaded. Check the database configuration.");
+      const body = (await response.json().catch(() => ({}))) as {
+        packs?: PackSummary[];
+        error?: string;
+      };
+      if (!response.ok || !body.packs) {
+        setStatus(body.error ?? "Track Quality Packs could not be loaded.");
         return;
       }
-      const data = (await response.json()) as { packs: PackSummary[] };
-      setPacks(data.packs);
+      setPacks(body.packs);
     })();
   }, []);
 

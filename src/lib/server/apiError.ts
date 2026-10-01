@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AuthorisationError } from "./auth";
 import { ConcurrencyError } from "./packService";
+import { describeDatabaseError } from "./dbError";
 
 /**
  * Consistent API error handling. Internal details and connection strings are
@@ -10,6 +11,11 @@ import { ConcurrencyError } from "./packService";
 export function apiError(error: unknown): NextResponse {
   if (error instanceof AuthorisationError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+  const databaseProblem = describeDatabaseError(error);
+  if (databaseProblem) {
+    console.error("Database unavailable", error instanceof Error ? error.name : "unknown");
+    return NextResponse.json({ error: databaseProblem }, { status: 503 });
   }
   if (error instanceof ConcurrencyError) {
     return NextResponse.json({ error: error.message }, { status: 409 });
